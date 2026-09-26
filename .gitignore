@@ -1,0 +1,7 @@
+# Never commit keys or local n8n data
+.env
+*.local.json
+.n8n/
+node_modules/
+.DS_Store
+Thumbs.db
