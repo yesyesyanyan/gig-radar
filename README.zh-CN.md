@@ -7,6 +7,12 @@
 
 [English →](README.md)
 
+<p align="center"><img src="docs/telegram.jpg" width="320" alt="Telegram 推送截图"></p>
+
+![n8n 实际运行截图](docs/n8n-canvas.jpg)
+
+*真实运行（Windows + `npx n8n`）：抓到 125 条帖子 → 免费预筛后剩 7 条 → DeepSeek 打分 1–7 分 → 推送 1 条。*
+
 ## 工作流程
 
 定时触发 → 读取 RSS → 免费预筛 → 去重 + 限量 → DeepSeek 打分（JSON 输出）→ 分数 ≥ 7 → Telegram 推送
@@ -15,7 +21,7 @@ AI 会给出：匹配分数、预算、工作量、难度、一句话中文摘�
 
 ## 快速上手
 
-1. **运行 n8n**：装好 Node.js（LTS 版）后在命令行执行 `npx n8n`，或者用 Docker：`docker compose up -d`。
+1. **运行 n8n**：装好 Node.js（LTS 版）后在命令行执行 `npx n8n`（Windows 也可以直接双击 `start-n8n-windows.bat`），或者用 Docker：`docker compose up -d`。
    浏览器打开 <http://localhost:5678>，注册本地账号。
 2. **导入工作流**：Workflows → Create → 右上角 ⋯ → Import from file → 选 `workflows/gig-radar.json`。
 3. **填密钥**
@@ -26,7 +32,7 @@ AI 会给出：匹配分数、预算、工作量、难度、一句话中文摘�
      `https://api.telegram.org/bot<你的TOKEN>/getUpdates`，复制 `"chat":{"id": …}` 里的数字。
 4. **改 Config 节点**：`telegramChatId` 填上一步的数字；`myProfile` 写几句你的技能和想接的活，AI 就是按这段话打分的，写得越具体越准。
 5. **测试并启用**：点 **Test workflow**。如果没收到消息，可以先把 `minScore` 临时改成 `0` 看看 AI 都打了什么分。
-   没问题后把工作流切换为 **Active**，之后每小时自动运行。
+   没问题后点右上角 **Publish**（旧版 n8n 是打开 **Active** 开关），之后只要电脑上的 n8n 开着，就会每小时自动运行。
 
 ## 费用
 
@@ -35,7 +41,7 @@ AI 会给出：匹配分数、预算、工作量、难度、一句话中文摘�
 
 ## 注意事项
 
-- “已看过”的记录只在 **Active** 自动运行时保存；手动测试时每次都当作新帖，这是正常的。
+- “已看过”的记录只在发布（Publish）后的自动运行中保存；手动测试时每次都当作新帖，这是正常的。
 - AI 调用失败（比如余额不足）的帖子，下一轮会自动重试，不会丢。
 - Reddit 的 RSS 有频率限制，多个版块请合并成一个链接（`r/a+b+c/new/.rss`），不要比每 15 分钟更频繁。
 - Upwork 和 Fiverr 没有 RSS，所以没有包含在内。

@@ -19,6 +19,12 @@ each remaining post against *your* skills, and sends only the good ones to your 
 🔗 https://www.reddit.com/r/forhire/comments/...
 ```
 
+<p align="center"><img src="docs/telegram.jpg" width="320" alt="A real Gig Radar alert in Telegram"></p>
+
+![The workflow in n8n after a real run: 125 posts fetched, 7 left after the free filter, 1 sent to Telegram](docs/n8n-canvas.jpg)
+
+*Real run on n8n 2 (Windows, `npx n8n`): 125 posts fetched → 7 left after the free pre-filter → DeepSeek scored them 1–7 → 1 alert sent.*
+
 ## How it works
 
 ```mermaid
@@ -52,6 +58,7 @@ Pick one:
 ```bash
 # Option A – Node.js (LTS) installed
 npx n8n
+# (Windows: or just double-click start-n8n-windows.bat)
 
 # Option B – Docker
 docker compose up -d
@@ -85,7 +92,8 @@ Optional: `feeds`, `topicKeywords`, `minScore`, `summaryLanguage`, `maxAiChecksP
 ### 5. Test, then switch on
 
 Click **Test workflow**. If nothing arrives, lower `minScore` to `0` for one test run to see everything the AI scored.
-When you're happy, set the workflow to **Active** – it now runs every hour on its own.
+When you're happy, click **Publish** (older n8n versions: toggle **Active**) – it now runs every hour on its own,
+as long as n8n is running on your computer.
 
 ## Cost
 
@@ -102,7 +110,7 @@ dozen posts a day, i.e. **cents per month**. Hard ceiling: `maxAiChecksPerRun` (
 
 ## Good to know
 
-- **Memory only works when Active.** n8n saves the "already seen" list only for automatic runs. Manual test runs treat every post as new – that's expected.
+- **Memory only works when published/active.** n8n saves the "already seen" list only for automatic runs. Manual test runs treat every post as new – that's expected.
 - **Failed AI calls are retried** on the next run instead of being lost (e.g. when your DeepSeek balance is empty).
 - **Reddit rate-limits RSS.** Keep the Reddit subreddits in one combined feed (`r/a+b+c/new/.rss`) and don't run more often than every ~15 minutes.
 - **Upwork and Fiverr don't offer RSS feeds**, so they are not included.
@@ -116,6 +124,8 @@ src/*.js                     ← source of each Code node (readable + testable)
 scripts/build-workflow.py    ← rebuilds the workflow JSON from src/
 test/code-nodes.test.js      ← runs the Code-node logic outside n8n with fixtures
 docker-compose.yml           ← optional local n8n
+start-n8n-windows.bat        ← Windows: double-click to start n8n
+docs/                        ← screenshots
 ```
 
 Edit a file in `src/`, then:
