@@ -1,0 +1,380 @@
+{
+  "name": "Gig Radar – AI freelance gig finder",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📡 Gig Radar\nFinds small **paid automation gigs** (n8n, Make, Zapier, AI agents, APIs) on Reddit and the n8n forum, lets **DeepSeek** score each one against *your* profile, and sends only the good ones to **Telegram**.\n\n### Setup (5 min)\n1. Open **Config** → set `telegramChatId`, edit `myProfile`.\n2. **DeepSeek: score gig** → create a *Header Auth* credential: Name `Authorization`, Value `Bearer sk-...`.\n3. **Send to Telegram** → create a *Telegram* credential with your bot token.\n4. Click **Test workflow**, then switch the workflow to **Active**.\n\n### Cost\nFree pre-filter first; at most `maxAiChecksPerRun` posts per hour go to the AI (`deepseek-flash`, a fraction of a cent each).\n\nRepo & docs: see README on GitHub.",
+        "height": 700,
+        "width": 520,
+        "color": 4
+      },
+      "id": "d8978fcb-9145-5421-aca4-ac91341ad258",
+      "name": "Note: About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1 · Fetch\nRuns every hour (or by hand). Reads every RSS feed listed in **Config**.",
+        "height": 420,
+        "width": 700,
+        "color": 7
+      },
+      "id": "f6bdb215-d272-5706-accd-c892b2ab832d",
+      "name": "Note: Fetch",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2 · Free filter\nDrops *[For Hire]* posts, off-topic posts and anything already checked. Caps how many go to the AI.",
+        "height": 420,
+        "width": 460,
+        "color": 7
+      },
+      "id": "f1eac13b-f680-5466-b016-702f29b59841",
+      "name": "Note: Filter",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        680,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3 · AI scoring\nDeepSeek returns json: fit score 0-10, budget, effort, difficulty, a one-line summary and scam red flags.",
+        "height": 420,
+        "width": 460,
+        "color": 7
+      },
+      "id": "dba3c14f-2195-5a4c-956f-c113c980cf6e",
+      "name": "Note: AI",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4 · Notify\nKeeps gigs with score ≥ `minScore` and sends them to Telegram, best first.",
+        "height": 420,
+        "width": 460,
+        "color": 7
+      },
+      "id": "7b286836-2f07-51c0-8c55-1c3c67be4ce4",
+      "name": "Note: Send",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "8678c68b-c870-5513-ba90-b4769e029652",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8146384f-8746-50f1-9f73-6910c68e24a8",
+      "name": "Test by hand",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n//  GIG RADAR – SETTINGS\n//  Edit the values below, then save. Everything else reads from here.\n// ============================================================\nreturn [{\n  json: {\n    // 1) Where to look. Any RSS/Atom feed works – add or remove freely.\n    feeds: [\n      {\n        name: 'Reddit',\n        url: 'https://www.reddit.com/r/forhire+DoneDirtCheap+slavelabour+n8n+automation+nocode+zapier/new/.rss?limit=100',\n      },\n      {\n        name: 'n8n Community',\n        url: 'https://community.n8n.io/c/jobs/13.rss',\n      },\n    ],\n\n    // Sources that are job boards: every post is a job/offer, so no \"hiring\" words are required.\n    jobBoards: ['forhire', 'donedirtcheap', 'slavelabour', 'community.n8n.io'],\n\n    // Sources that are already about automation, so the topic keywords are not required.\n    automationCommunities: ['n8n', 'automation', 'nocode', 'zapier', 'community.n8n.io'],\n\n    // 2) Words that mean \"this post is about automation work\".\n    topicKeywords: [\n      'n8n', 'make.com', 'integromat', 'zapier', 'automation', 'automate', 'workflow',\n      'ai agent', 'ai assistant', 'chatbot', 'gpt', 'openai', 'llm', 'deepseek', 'claude',\n      'api', 'integration', 'webhook', 'scrap', 'airtable', 'notion', 'google sheets',\n      'crm', 'gohighlevel', 'telegram bot', 'whatsapp', 'python script',\n    ],\n\n    // 3) Who you are – the AI scores every gig against this.\n    myProfile:\n      'I build AI automations with n8n, LLM APIs (DeepSeek/OpenAI), webhooks, REST APIs, ' +\n      'Google Sheets, Notion, Telegram and email. I prefer small, well-defined remote tasks ' +\n      '(a few hours to a few days, roughly under $500 fixed price) that I can later turn into ' +\n      'portfolio pieces. Any language is fine. Not interested in full-time jobs, unpaid work, ' +\n      'or \"equity only\" offers.',\n\n    // 4) AI settings\n    model: 'deepseek-flash',          // cheap + fast. 'deepseek-v4-pro' for harder judgement\n    summaryLanguage: 'Simplified Chinese',\n    minScore: 7,                      // only gigs scoring >= this (0-10) are sent to you\n    maxAiChecksPerRun: 15,            // cost guard: max posts sent to the AI per run\n    maxAgeHours: 48,                  // ignore posts older than this\n\n    // 5) Where to send the alerts (see README: \"Get your Telegram chat ID\")\n    telegramChatId: 'YOUR_CHAT_ID',\n  },\n}];\n"
+      },
+      "id": "695b0c84-cd0d-5dc5-a734-7970c495ee45",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per feed, so \"Read feeds\" fetches each of them.\nreturn $('Config').first().json.feeds.map((feed) => ({ json: feed }));\n"
+      },
+      "id": "247b72ac-5670-545d-b015-b10aebfd41c7",
+      "name": "List feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "21b0e01c-0b88-5f88-b0cd-f2c88fa0977d",
+      "name": "Read feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns raw RSS entries into clean \"post\" objects and drops the obvious non-matches\n// for free, before anything is sent to the (paid) AI.\nconst cfg = $('Config').first().json;\nconst lower = (list) => (list || []).map((s) => String(s).toLowerCase());\nconst jobBoards = lower(cfg.jobBoards);\nconst automationCommunities = lower(cfg.automationCommunities);\n// Keywords match at the start of a word: \"api\" matches \"API\"/\"APIs\" but not \"capital\".\nconst escapeRe = (s) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nconst topicRe = new RegExp('(?:^|[^a-z0-9])(?:' + lower(cfg.topicKeywords).map(escapeRe).join('|') + ')', 'i');\nconst maxAgeMs = (cfg.maxAgeHours || 48) * 3600 * 1000;\n\nconst FOR_HIRE = /\\[\\s*for\\s*hire\\s*\\]|\\bfor\\s*hire\\b|\\[\\s*offer\\s*\\]|available for (hire|freelance|work|projects?)|\\bhire me\\b|\\bopen to work\\b|\\bmy services\\b/i;\nconst HIRING = /\\[\\s*(hiring|task|paid)\\s*\\]|\\bhiring\\b|\\bwe'?re hiring\\b|looking for (a |an |some )?(freelancer|developer|dev|expert|specialist|consultant|someone|person|help|builder|engineer)|need(ed)? (a |an |some )?(freelancer|developer|dev|expert|specialist|someone|help|builder|engineer)|\\bwill pay\\b|\\bpaid (task|gig|project|work)\\b|\\bbudget\\b|\\$\\s?\\d+|\\d+\\s?(usd|eur|€|gbp|£)\\b/i;\n\nconst stripHtml = (html) =>\n  String(html || '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst out = [];\nfor (const item of $input.all()) {\n  const e = item.json || {};\n  if (!e.title || !e.link) continue; // failed feed / empty entry\n\n  const link = String(e.link);\n  const sub = (link.match(/reddit\\.com\\/r\\/([^/]+)/i) || [])[1];\n  const host = (link.match(/^https?:\\/\\/([^/]+)/i) || [])[1] || '';\n  const sourceKey = (sub || host).toLowerCase();\n  const source = sub ? `Reddit r/${sub}` : host.replace(/^www\\./, '');\n\n  const title = String(e.title).trim();\n  let text = e.contentSnippet ? String(e.contentSnippet) : stripHtml(e.content || e.description);\n  text = text.replace(/submitted by\\s+\\/u\\/\\S+.*$/i, '').trim(); // Reddit footer\n\n  const dateStr = e.isoDate || e.pubDate;\n  const date = dateStr ? new Date(dateStr) : null;\n  if (date && !isNaN(date) && Date.now() - date.getTime() > maxAgeMs) continue;\n\n  const head = `${title}\\n${text.slice(0, 600)}`;\n  const isJobBoard = jobBoards.includes(sourceKey);\n  const isAutomationCommunity = automationCommunities.includes(sourceKey);\n\n  if (FOR_HIRE.test(title)) continue; // people offering services, not clients\n\n  const hiring = HIRING.test(head) || (isJobBoard && !sub); // forum job boards: every topic is a job\n  const onTopic = isAutomationCommunity || topicRe.test(head);\n  if (!hiring || !onTopic) continue;\n\n  out.push({\n    json: {\n      id: String(e.id || e.guid || link),\n      source,\n      title,\n      text: text.slice(0, 3000),\n      link,\n      author: String(e.author || e.creator || '').replace(/^\\/u\\//, ''),\n      postedAt: date && !isNaN(date) ? date.toISOString() : null,\n    },\n  });\n}\nreturn out;\n"
+      },
+      "id": "888b6bba-dd2b-5175-b750-8401c92290f3",
+      "name": "Clean & pre-filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Remembers which posts were already checked, so you never get the same gig twice\n// and never pay the AI twice for it.\n// NOTE: n8n only saves this memory for automatic (production) runs. When you click\n// \"Test workflow\" by hand, everything counts as new – that's expected.\nconst cfg = $('Config').first().json;\nconst memory = $getWorkflowStaticData('global');\nmemory.seen = memory.seen || {};\n\n// Forget entries older than 30 days so the memory stays small.\nconst cutoff = Date.now() - 30 * 24 * 3600 * 1000;\nfor (const [key, ts] of Object.entries(memory.seen)) {\n  if (ts < cutoff) delete memory.seen[key];\n}\n\nconst fresh = [];\nconst seenThisRun = new Set();\nfor (const item of $input.all()) {\n  const key = item.json.link;\n  if (memory.seen[key] || seenThisRun.has(key)) continue;\n  seenThisRun.add(key);\n  fresh.push(item);\n}\n\n// Newest first, then apply the cost guard. Posts beyond the limit are NOT marked\n// as seen, so the next run picks them up.\nfresh.sort((a, b) => String(b.json.postedAt || '').localeCompare(String(a.json.postedAt || '')));\nconst batch = fresh.slice(0, cfg.maxAiChecksPerRun || 15);\nfor (const item of batch) memory.seen[item.json.link] = Date.now();\n\nreturn batch.map((item) => ({ json: item.json }));\n"
+      },
+      "id": "02953e70-3684-52c3-992c-be967c1d36b0",
+      "name": "Only new posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds one DeepSeek chat request per post.\nconst cfg = $('Config').first().json;\n\nconst system = `You screen freelance job posts for one freelancer and answer in json only.\n\nThe freelancer's profile:\n${cfg.myProfile}\n\nFor the post you receive, return exactly this json shape:\n{\n  \"is_hiring\": true,\n  \"is_automation\": true,\n  \"fit_score\": 8,\n  \"budget\": \"$150 fixed\",\n  \"effort\": \"a few hours\",\n  \"difficulty\": \"easy\",\n  \"summary\": \"one sentence: what the client wants built\",\n  \"why\": \"one short sentence: why it does or does not fit the profile\",\n  \"red_flags\": \"\"\n}\n\nRules:\n- is_hiring: true only if the author wants to PAY someone for work. False if they offer their own services, ask a free question, or share a project.\n- is_automation: true if the work is mainly automation, AI workflows, integrations, bots, scraping or scripting.\n- budget: copy it from the post if stated (keep the currency), otherwise \"unknown\".\n- effort: one of \"a few hours\", \"1-3 days\", \"about a week\", \"ongoing / part-time\", \"full-time job\", \"unknown\".\n- difficulty: \"easy\", \"medium\" or \"hard\" for someone with the profile above.\n- fit_score (0-10): 9-10 = small, clear, paid automation task that matches the profile; 7-8 = good match with minor gaps;\n  4-6 = partial match (too big, vague, or skills missing); 0-3 = not hiring, not automation, unpaid, equity-only, or full-time job.\n- red_flags: short note on scam signs (asks for upfront payment, personal data, off-platform crypto, \"test task\" that is real work), else \"\".\n- Write \"summary\", \"why\" and \"red_flags\" in ${cfg.summaryLanguage}. Keep other values in English.`;\n\nreturn $input.all().map((item) => {\n  const p = item.json;\n  const user = `Source: ${p.source}\\nPosted: ${p.postedAt || 'unknown'}\\nTitle: ${p.title}\\n\\n${p.text || '(no body text, judge from the title)'}`;\n  return {\n    json: {\n      post: p,\n      requestBody: {\n        model: cfg.model || 'deepseek-flash',\n        thinking: { type: 'disabled' },\n        response_format: { type: 'json_object' },\n        temperature: 0.2,\n        max_tokens: 500,\n        messages: [\n          { role: 'system', content: system },\n          { role: 'user', content: user },\n        ],\n      },\n    },\n  };\n});\n"
+      },
+      "id": "f48858db-6294-5897-b13e-3fd0a95e040c",
+      "name": "Build AI request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "0505ff9e-ee44-5a02-8eca-36fb54bdca63",
+      "name": "DeepSeek: score gig",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the AI verdicts, keeps the good gigs and formats a Telegram message for each.\nconst cfg = $('Config').first().json;\nconst memory = $getWorkflowStaticData('global');\nmemory.seen = memory.seen || {};\nconst minScore = Number(cfg.minScore ?? 7);\n\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst parseVerdict = (content) => {\n  if (!content) return null;\n  try { return JSON.parse(content); } catch (e) {}\n  const m = String(content).match(/\\{[\\s\\S]*\\}/); // tolerate text around the json\n  if (m) { try { return JSON.parse(m[0]); } catch (e) {} }\n  return null;\n};\n\nconst good = [];\nlet failed = 0;\n$input.all().forEach((item, i) => {\n  const post = $('Build AI request').itemMatching(i).json.post;\n  const verdict = parseVerdict(item.json?.choices?.[0]?.message?.content);\n\n  if (!verdict) {\n    // AI call failed (no credit, timeout, empty answer...). Forget the post so the\n    // next run tries it again instead of losing it.\n    failed++;\n    delete memory.seen[post.link];\n    return;\n  }\n\n  const score = Number(verdict.fit_score) || 0;\n  if (!verdict.is_hiring || !verdict.is_automation || score < minScore) return;\n\n  const lines = [\n    `🎯 <b>${score}/10</b> · ${esc(post.source)}`,\n    `<b>${esc(post.title)}</b>`,\n    '',\n    `💬 ${esc(verdict.summary)}`,\n    `💰 ${esc(verdict.budget || 'unknown')} · ⏱ ${esc(verdict.effort || 'unknown')} · 🧩 ${esc(verdict.difficulty || '?')}`,\n    `👍 ${esc(verdict.why)}`,\n  ];\n  if (verdict.red_flags) lines.push(`⚠️ ${esc(verdict.red_flags)}`);\n  lines.push('', `🔗 ${esc(post.link)}`);\n\n  good.push({\n    json: {\n      chatId: cfg.telegramChatId,\n      score,\n      title: post.title,\n      link: post.link,\n      message: lines.join('\\n').slice(0, 4000), // Telegram limit is 4096\n    },\n  });\n});\n\nif (failed) console.log(`${failed} AI call(s) failed – those posts will be retried next run.`);\nreturn good.sort((a, b) => b.json.score - a.json.score);\n"
+      },
+      "id": "efb05640-f5cc-5d98-a619-ba2c943a2042",
+      "name": "Pick the good ones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "fe72ab06-c341-58fd-a2ea-25f74c79438e",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test by hand": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "List feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List feeds": {
+      "main": [
+        [
+          {
+            "node": "Read feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read feeds": {
+      "main": [
+        [
+          {
+            "node": "Clean & pre-filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & pre-filter": {
+      "main": [
+        [
+          {
+            "node": "Only new posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only new posts": {
+      "main": [
+        [
+          {
+            "node": "Build AI request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI request": {
+      "main": [
+        [
+          {
+            "node": "DeepSeek: score gig",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek: score gig": {
+      "main": [
+        [
+          {
+            "node": "Pick the good ones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick the good ones": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
