@@ -11,13 +11,13 @@
 
 ![n8n 实际运行截图](docs/n8n-canvas.jpg)
 
-*真实运行（Windows + `npx n8n`）：抓到 125 条帖子 → 免费预筛后剩 7 条 → DeepSeek 打分 1–7 分 → 推送 1 条。*
+*真实运行（Windows + `npx n8n`）：抓到 125 条帖子 → 免费预筛后剩 7 条 → DeepSeek 逐条打分 → 推送 1 条。*
 
 ## 工作流程
 
 定时触发 → 读取 RSS → 免费预筛 → 去重 + 限量 → DeepSeek 打分（JSON 输出）→ 分数 ≥ 7 → Telegram 推送
 
-AI 会给出：匹配分数、预算、工作量、难度、一句话中文摘要，以及**诈骗风险提示**。
+AI 会给出：匹配分数、预算、工作量、难度、一句话摘要，以及**诈骗风险提示**。摘要默认是英文，想要中文就把 Config 里的 `summaryLanguage` 改成 `'Simplified Chinese'`。
 
 ## 快速上手
 

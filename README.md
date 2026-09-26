@@ -23,7 +23,7 @@ each remaining post against *your* skills, and sends only the good ones to your 
 
 ![The workflow in n8n after a real run: 125 posts fetched, 7 left after the free filter, 1 sent to Telegram](docs/n8n-canvas.jpg)
 
-*Real run on n8n 2 (Windows, `npx n8n`): 125 posts fetched → 7 left after the free pre-filter → DeepSeek scored them 1–7 → 1 alert sent.*
+*Real run on n8n 2 (Windows, `npx n8n`): 125 posts fetched → 7 left after the free pre-filter → DeepSeek scored each one → 1 alert sent.*
 
 ## How it works
 
@@ -87,7 +87,7 @@ Open the **Config** node and change at least:
 - `telegramChatId` – the number from step 3
 - `myProfile` – a few sentences about your skills and the gigs you want. The AI scores every post against this text, so be specific.
 
-Optional: `feeds`, `topicKeywords`, `minScore`, `summaryLanguage`, `maxAiChecksPerRun`, `model`.
+Optional: `feeds`, `topicKeywords`, `minScore`, `summaryLanguage` (default English), `maxAiChecksPerRun`, `model`.
 
 ### 5. Test, then switch on
 
