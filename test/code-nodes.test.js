@@ -122,7 +122,7 @@ const FEED_ITEMS = [
   assert.strictEqual(body.model, 'deepseek-flash');
   assert.deepStrictEqual(body.response_format, { type: 'json_object' });
   assert(/json/i.test(body.messages[0].content), 'DeepSeek JSON mode needs the word "json" in the prompt');
-  assert(body.messages[0].content.includes('Simplified Chinese'));
+  assert(body.messages[0].content.includes('Write "summary", "why" and "red_flags" in English'));
   JSON.stringify(body); // must be serialisable for the HTTP node
 
   // ---- Mock DeepSeek answers (one per request, same order)
