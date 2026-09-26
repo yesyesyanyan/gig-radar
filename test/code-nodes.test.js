@@ -45,7 +45,7 @@ const reddit = (sub, id, title, body, h = 2) => ({
     isoDate: hoursAgo(h),
     author: '/u/someone',
     content: `<!-- SC_OFF --><div class="md"><p>${body}</p></div><!-- SC_ON --> &#32; submitted by &#32; <a href="https://www.reddit.com/user/someone"> /u/someone </a>`,
-    contentSnippet: `${body}\n submitted by /u/someone [link] [comments]`,
+    contentSnippet: `${body}\n    submitted by    /u/someone    to    r/${sub}  \n [link]   [comments]`,
     id: `t3_${id}`,
   },
 });
@@ -57,7 +57,7 @@ const forum = (id, title, body, h = 3) => ({
     isoDate: hoursAgo(h),
     creator: 'client42',
     content: `<p>${body}</p>`,
-    contentSnippet: body,
+    contentSnippet: `${body}\n1 post - 1 participant\nRead full topic`,
     guid: `community.n8n.io-topic-${id}`,
     categories: ['Jobs'],
   },
@@ -73,6 +73,12 @@ const FEED_ITEMS = [
   reddit('forhire', 'a7', '[Hiring] Zapier automation for my capital markets newsletter', 'Budget $200.'),
   reddit('forhire', 'a8', '[Hiring] Real estate agent assistant', 'Need a virtual assistant for calls, $10/hr.'), // off-topic
   reddit('forhire', 'a9', '[Hiring] Old post: Make.com scenario fix', 'Budget $50.', 72),                   // too old
+  // Real-world false positives seen in the first live run (all must be dropped):
+  reddit('n8n', 'b1', 'I quit my job to vibe code a LinkedIn outreach automation tool, and made $8K', 'Here is how.'),
+  reddit('n8n', 'b2', 'I built an AI-powered real estate lead qualification workflow. Looking for feedback', 'Budget: 1 Cr, location...'),
+  reddit('n8n', 'b3', "I'm very confused, stuck on 2 things. Need help", 'Webhook verify token...'),
+  reddit('n8n', 'b4', 'AI Automation Engineer open to freelance and remote opportunities', 'My experience includes...'),
+  reddit('n8n', 'b5', 'Looking for 1-2 n8n Builders for Long-Term Collaboration', 'Paid per project.'), // keep
   forum('101', 'N8N AI Automation Developer (Remote)', 'We need help building 3 workflows with OpenAI and Airtable.'),
   forum('102', 'Available for Freelance | n8n Automation + AI/API Integrations', 'Hire me.'),
   { json: { error: { message: 'getaddrinfo ENOTFOUND' } } }, // a feed that failed
@@ -89,26 +95,27 @@ const FEED_ITEMS = [
   const kept = await runCode('Clean & pre-filter', 'prefilter.js', FEED_ITEMS);
   const keptIds = kept.map((i) => i.json.link.match(/comments\/(\w+)|\/t\/slug\/(\d+)/).slice(1).find(Boolean));
   console.log('pre-filter kept:', keptIds.join(', '));
-  assert.deepStrictEqual(keptIds.sort(), ['101', 'a1', 'a5', 'a6', 'a7'].sort());
+  assert.deepStrictEqual(keptIds.sort(), ['101', 'a1', 'a5', 'a6', 'a7', 'b5'].sort());
   const a1 = kept.find((i) => i.json.link.includes('/a1/')).json;
   assert.strictEqual(a1.source, 'Reddit r/forhire');
   assert(!/submitted by/i.test(a1.text), 'reddit footer must be stripped');
   assert.strictEqual(a1.author, 'someone');
   const f = kept.find((i) => i.json.link.includes('community.n8n.io')).json;
   assert.strictEqual(f.source, 'community.n8n.io');
+  assert(!/participant|Read full topic/.test(f.text), 'forum footer must be stripped');
 
   // ---- Dedupe + cost guard (limit 3 for this test)
   outputs['Config'][0].json.maxAiChecksPerRun = 3;
   const batch1 = await runCode('Only new posts', 'only-new.js', kept);
   assert.strictEqual(batch1.length, 3);
   const batch2 = await runCode('Only new posts', 'only-new.js', kept);
-  assert.strictEqual(batch2.length, 2, 'second run gets only the 2 not yet checked');
+  assert.strictEqual(batch2.length, 3, 'second run gets the next 3');
   const batch3 = await runCode('Only new posts', 'only-new.js', kept);
   assert.strictEqual(batch3.length, 0, 'nothing is checked twice');
   console.log('dedupe: run1=%d run2=%d run3=%d', batch1.length, batch2.length, batch3.length);
 
   // ---- Build AI requests
-  const all5 = batch1.concat(batch2);
+  const all5 = batch1.concat(batch2).slice(0, 5);
   const reqs = await runCode('Build AI request', 'build-ai-request.js', all5);
   assert.strictEqual(reqs.length, 5);
   const body = reqs[0].json.requestBody;
