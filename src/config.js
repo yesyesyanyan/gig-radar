@@ -40,7 +40,7 @@ return [{
 
     // 4) AI settings
     model: 'deepseek-flash',          // cheap + fast. 'deepseek-v4-pro' for harder judgement
-    summaryLanguage: 'Simplified Chinese',
+    summaryLanguage: 'English',       // language of the AI summary, e.g. 'Simplified Chinese'
     minScore: 7,                      // only gigs scoring >= this (0-10) are sent to you
     maxAiChecksPerRun: 15,            // cost guard: max posts sent to the AI per run
     maxAgeHours: 48,                  // ignore posts older than this
